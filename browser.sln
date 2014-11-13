@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Express 2012 for Windows Desktop
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "browser", "browser\browser.csproj", "{A134D8F8-EAA9-4788-97E1-B8DF9C9471C2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SQLParser", "SQLParser\SQLParser.csproj", "{EEEDFF76-FF4E-4CD7-B218-000DEA5D3CE7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "parsing", "parsing\parsing.csproj", "{524B1B69-6012-4E14-B00F-51BBCB23ED09}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A134D8F8-EAA9-4788-97E1-B8DF9C9471C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A134D8F8-EAA9-4788-97E1-B8DF9C9471C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A134D8F8-EAA9-4788-97E1-B8DF9C9471C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A134D8F8-EAA9-4788-97E1-B8DF9C9471C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EEEDFF76-FF4E-4CD7-B218-000DEA5D3CE7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EEEDFF76-FF4E-4CD7-B218-000DEA5D3CE7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EEEDFF76-FF4E-4CD7-B218-000DEA5D3CE7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EEEDFF76-FF4E-4CD7-B218-000DEA5D3CE7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{524B1B69-6012-4E14-B00F-51BBCB23ED09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{524B1B69-6012-4E14-B00F-51BBCB23ED09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{524B1B69-6012-4E14-B00F-51BBCB23ED09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{524B1B69-6012-4E14-B00F-51BBCB23ED09}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

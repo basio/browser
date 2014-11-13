@@ -1,0 +1,216 @@
+
+/*
+ * SQL COCO/R specification
+ *
+ *  Created on: 17-Nov-2009
+ *      Author: Atul Shukla (atul.shukla@iiitb.net)
+ */
+
+#include<map>
+#include<string>
+#include<iostream>
+#include<vector>
+#include "sqlFunc.h"
+using namespace std;
+COMPILER Sql
+int flagg;
+IGNORECASE
+
+CHARACTERS
+
+char = 'A'..'Z' + 'a'..'z'.
+digit = '0'..'9'.
+strr=ANY-'\''.
+
+
+TOKENS
+c=(char{(char|digit)}).
+const = "'"strr{strr}"'".
+num=digit{digit}.
+rel="<=" | ">="|"!="|">"|"<"|"==".
+
+PRODUCTIONS
+
+Sql(.flagg=0;.) = (Modify_data|Define_data).
+
+Define_data=									(. vector<ckval> a;
+												   string table; .)	
+Create_command<a,table>	";"						(.//cout<<"Inside atg"<<errors->count;
+													if(errors->count==0){
+												  _create(table,a);flagg=1;}.)						
+
+.
+
+Modify_data = Select_command | Insert_command | Update_command | Delete_command | Drop_command.
+
+
+/*----------------------------------Start of Create-------------------------------------------------*/
+
+Create_command<. vector<ckval> &a, string &table .>  													 
+= "create" "table" 
+str<table> 
+"(" 
+(Name_type_pair<a>{","Name_type_pair<a>})
+")" 											
+.
+
+Name_type_pair<.vector<ckval> &a.>         (. string name,typ,temp,temp2;ckval kv;
+														kv.isdefault=false;
+														kv.isindex=false;
+														kv.isnull=true;.)
+=str<name>type<typ>["null"                      (.  kv.isnull=true;	  .)
+|"not" "null"									(. kv.isnull=false;	  .)	
+] ["default" (str<temp2>|number<temp2>)							(. kv.isdefault=true;
+												   kv.def=temp2;        .)
+] ["index"										(. kv.isindex=true;      .)
+]												(. 												   
+												   kv.name=name;
+												   kv.type=typ;
+												   a.push_back(kv);.)
+.
+
+type<string & type>								(.string num;.)
+=("int"											(.type.append("int");.)
+|"float"										(.type.append("float");.)
+|"long"											(.type.append("long");.)
+|"date"											(.type.append("date");.)
+|"time"											(.type.append("time");.)
+|"char("number<num> 							(.type.append("char/");
+												  type.append(num);.)
+")"|"varchar("number<num>						(.type.append("varchar/");
+												  type.append(num);.)
+")").
+
+/*----------------------------------End of Create-------------------------------------------------*/
+
+
+
+/*----------------------------------Start of Drop-------------------------------------------------*/
+
+Drop_command									(.vector<string> tablelist;string table;.)	
+
+ = "drop" str_list<tablelist>{","str_list<tablelist>}";"
+												(.
+												if(errors->count==0){
+												_drop(tablelist);
+													flagg=1;}.)
+ .
+
+/*----------------------------------End of Drop-------------------------------------------------*/
+
+
+
+/*----------------------------------Start of Select------------------------------------------------*/
+Select_command 									(.vector<string> columnlist;
+												 vector<string> a,b,c;int count=0;
+												  string table,temp;vector<int> condition;.)	
+
+="select" ["distinct"|"all"]((str_list<columnlist>{","str_list<columnlist>})|("*"(.columnlist.push_back("*");.))) "from" str<table> 
+["where" Condition<condition,a,b,c,count>]	";"							(.
+																			if(errors->count==0){
+																			_select(table,columnlist,condition,a,b,c);flagg=1;}.)
+.
+
+/*----------------------------------End of Select--------------------------------------------------*/
+
+
+/*----------------------------------Start of Update------------------------------------------------*/
+Update_command 									(. map<string,string> col_table;
+													vector<string> a,b,c;int count=0;
+												   string table;vector<int> condition; .)		
+= "update" str<table> "set" 
+key_value<col_table>{key_value<col_table>}
+["where" Condition<condition,a,b,c,count>]";"
+												(.
+												if(errors->count==0){
+												_update(table,col_table,condition,a,b,c);flagg=1;}.)
+.
+
+key_value<.map<string,string> &col_table.>		(.string table,key,value;.)
+= str<key> "=" (number<value>|strconst<value>)						(.col_table.insert( make_pair( key,value)) ;.)
+.
+/*----------------------------------End of Update------------------------------------------------*/
+
+
+
+/*----------------------------------Start of Insert------------------------------------------------*/
+
+Insert_command									(.string table;
+												  vector<string> columns,values;.)
+= "insert" "into" str<table> 
+"(" ( str_list<columns>{","str_list<columns>})")" 
+"values" 
+"(" ( (strconst_list<values>|number_list<values>){","(strconst_list<values>|number_list<values>) })")" ";"
+												(.
+												if(errors->count==0){
+												_insert(table,columns,values);flagg=1;}.)
+. 
+
+
+/*----------------------------------End of Insert--------------------------------------------------*/
+
+
+
+/*----------------------------------Start of Delete------------------------------------------------*/
+
+Delete_command									(.string table;vector<int> condition;int count=0;
+														vector<string> a,b,c; .)		
+= "delete" "from"  str<table>  ["where" Condition<condition,a,b,c,count>]";"
+												(.
+												if(errors->count==0){
+												_delete(table,condition,a,b,c);flagg=1;}.)
+.
+
+/*----------------------------------End of Delete------------------------------------------------*/
+
+Condition<. vector<int> &condition,vector<string> &a,vector<string> &b,vector<string> &c ,int &count.>  (. int temp; .)	
+ = con<condition,a,b,c,count> {((.temp=-1;.)"and"|(.temp=-2;.)"or") con<condition,a,b,c,count>(.condition.push_back(temp);.)}  .
+con<. vector<int> &x,vector<string> &a,vector<string> &b,vector<string> &c ,int &count.>="(" Condition<x,a,b,c,count> ")"| (.x.push_back(count);count++;.)str_list<a> r_list<b> (number_list<c>| strconst_list<c>).
+
+
+
+str_list<.vector<string> &list.>					(.string temp;.)
+
+ = str<temp>									(.list.push_back(temp);.)
+ 
+ .
+strconst_list<.vector<string> &list.>					(.string temp;.)
+
+ = strconst<temp>									(.list.push_back(temp);.)
+ 
+ .
+number_list<.vector<string> &list.>					(.string temp;.)
+
+ = number<temp>									(.list.push_back(temp);.)
+ 
+ .
+str<string & xz>=
+c												(.												
+												xz.append(coco_string_create_char(t->val));.)
+.
+strconst<string & xz>=
+const												(.
+
+												string temp;
+												temp.append(coco_string_create_char(t->val));
+												xz.append(temp.substr(1,(strlen(temp.c_str())-2)));;.)
+.
+number<string &a>
+=num 											(.
+													a.append(coco_string_create_char(t->val));
+													.)
+.
+
+
+
+r_list<.vector<string> &list.>					(.string temp;.)
+
+ = r<temp>									(.list.push_back(temp);.)
+ 
+ .
+ 
+ r<string &ab>
+=rel(.ab.append(coco_string_create_char(t->val));.)
+.
+
+END Sql.
