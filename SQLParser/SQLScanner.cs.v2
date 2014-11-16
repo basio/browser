@@ -1,11 +1,12 @@
 
 using System;
 using System.IO;
-using System.Collections;
 using System.Collections.Generic;
+using System.Collections;
 
 namespace sqlparser
 {
+
     public class Token
     {
         public int kind;    // token kind
@@ -390,7 +391,7 @@ namespace sqlparser
         Token NextToken()
         {
             while (ch == ' ' ||
-                ch >= 9 && ch <= 10 || ch == 13
+                false
             ) NextCh();
 
             int recKind = noSym;
