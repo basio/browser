@@ -1,0 +1,488 @@
+/*#include<map>
+#include<string>
+#include<iostream>
+#include<vector>
+#include "sqlFunc.h"
+using namespace std;
+*/
+using System;
+using System.Collections;
+using System.Collections.Generic;
+namespace sqlparser{
+    public class SQLParser {
+
+	    	static readonly bool[,] set = {
+		{T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x},
+		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,T,T, x,x,x,x, x,T,x,x, T,x,x,T, x,x,x,x}
+                                          };
+
+
+        public const int _EOF = 0;
+	
+        public const int _c = 1;
+    	public const int _const = 2;
+	    public const int _num = 3;
+	    public const int _rel = 4;
+	    public const int maxT = 38;
+
+	    const bool T = true;
+	const bool x = false;
+	const int minErrDist = 2;
+	
+	public SQLScanner scanner;
+	public Errors  errors;
+
+	public Token t;    // last recognized token
+	public Token la;   // lookahead token
+	int errDist = minErrDist;
+
+    int flagg;
+
+
+	public SQLParser(SQLScanner scanner) {
+		this.scanner = scanner;
+		errors = new Errors();
+	}
+
+	void SynErr (int n) {
+		if (errDist >= minErrDist) errors.SynErr(la.line, la.col, n);
+		errDist = 0;
+	}
+
+	public void SemErr (string msg) {
+		if (errDist >= minErrDist) errors.SemErr(t.line, t.col, msg);
+		errDist = 0;
+	}
+	
+	void Get () {
+		for (;;) {
+			t = la;
+			la = scanner.Scan();
+			if (la.kind <= maxT) { ++errDist; break; }
+
+			la = t;
+		}
+	}
+	
+	void Expect (int n) {
+		if (la.kind==n) Get(); else { SynErr(n); }
+	}
+	
+	bool StartOf (int s) {
+		return set[s, la.kind];
+	}
+	
+	void ExpectWeak (int n, int follow) {
+		if (la.kind == n) Get();
+		else {
+			SynErr(n);
+			while (!StartOf(follow)) Get();
+		}
+	}
+
+
+	bool WeakSeparator(int n, int syFol, int repFol) {
+		int kind = la.kind;
+		if (kind == n) {Get(); return true;}
+		else if (StartOf(repFol)) {return false;}
+		else {
+			SynErr(n);
+			while (!(set[syFol, kind] || set[repFol, kind] || set[0, kind])) {
+				Get();
+				kind = la.kind;
+			}
+			return StartOf(syFol);
+		}
+	}
+
+	
+	void Sql() {
+		flagg=0;
+		if (StartOf(1)) {
+			Modify_data();
+		} else if (la.kind == 6) {
+			Define_data();
+		} else SynErr(39);
+	}
+
+	void Modify_data() {
+		if (la.kind == 23) {
+			Select_command();
+		} else if (la.kind == 32) {
+			Insert_command();
+		} else if (la.kind == 29) {
+			Update_command();
+		} else if (la.kind == 35) {
+			Delete_command();
+		} else if (la.kind == 22) {
+			Drop_command();
+		} else SynErr(40);
+	}
+
+	void Define_data() {
+		List<column_keyvalue> a=new List<column_keyvalue>();
+		string table=""; 
+		Create_command(a,table);
+		Expect(5);
+		if(errors.count==0){
+		SQLFunc. _create(table,a);
+            flagg=1;
+        }
+	}
+
+	void Create_command(List<column_keyvalue> a, string table ) {
+		Expect(6);
+		Expect(7);
+		str(ref table);
+		Expect(8);
+		Name_type_pair(a);
+		while (la.kind == 9) {
+			Get();
+			Name_type_pair(a);
+		}
+		Expect(10);
+	}
+
+	void Select_command() {
+		List<string> columnlist=new List<string>();
+		List<string> a,b,c;
+        a = new List<string>();
+        b = new List<string>();
+        c = new List<string>();
+        int count=0;
+		string table,temp;
+        table = "";
+        temp = "";
+        List<int> condition = new List<int>(); ;
+		Expect(23);
+		if (la.kind == 24 || la.kind == 25) {
+			if (la.kind == 24) {
+				Get();
+			} else {
+				Get();
+			}
+		}
+		if (la.kind == 1) {
+			str_list(columnlist);
+			while (la.kind == 9) {
+				Get();
+				str_list(columnlist);
+			}
+		} else if (la.kind == 26) {
+			Get();
+			columnlist.Add("*");
+		} else SynErr(41);
+		Expect(27);
+		str(ref table);
+		if (la.kind == 28) {
+			Get();
+			Condition(condition,a,b,c,ref count);
+		}
+		Expect(5);
+		if(errors.count==0){
+		    SQLFunc._select(table,columnlist,condition,a,b,c);
+            flagg=1;
+        }
+	}
+
+	void Insert_command() {
+		string table="";
+		List<string> columns,values;
+        columns = new List<string>();
+        values = new List<string>();
+		Expect(32);
+		Expect(33);
+		str(ref table);
+		Expect(8);
+		str_list(columns);
+		while (la.kind == 9) {
+			Get();
+			str_list(columns);
+		}
+		Expect(10);
+		Expect(34);
+		Expect(8);
+		if (la.kind == 2) {
+			strconst_list(values);
+		} else if (la.kind == 3) {
+			number_list(values);
+		} else SynErr(42);
+		while (la.kind == 9) {
+			Get();
+			if (la.kind == 2) {
+				strconst_list(values);
+			} else if (la.kind == 3) {
+				number_list(values);
+			} else SynErr(43);
+		}
+		Expect(10);
+		Expect(5);
+		if(errors.count==0){
+		SQLFunc._insert(table,columns,values);flagg=1;}
+	}
+
+	void Update_command() {
+		Dictionary<string,string> col_table=new Dictionary<string,string>();
+		List<string> a,b,c;
+        a = new List<string>();
+        b = new List<string>();
+        c = new List<string>();
+        int count=0;
+		string table="";
+        List<int> condition=new List<int>(); 
+		Expect(29);
+		str(ref table);
+		Expect(30);
+		key_value(col_table);
+		while (la.kind == 1) {
+			key_value(col_table);
+		}
+		if (la.kind == 28) {
+			Get();
+			Condition(condition,a,b,c,ref count);
+		}
+		Expect(5);
+		if(errors.count==0){
+		    SQLFunc._update(table,col_table,condition,a,b,c);
+            flagg=1;
+        }
+	}
+
+	void Delete_command() {
+		string table="";
+        List<int> condition=new List<int>();
+        int count=0;
+		List<string> a,b,c;
+        a = new List<string>();
+        b = new List<string>();
+        c = new List<string>();
+		Expect(35);
+		Expect(27);
+		str(ref table);
+		if (la.kind == 28) {
+			Get();
+			Condition(condition,a,b,c,ref count);
+		}
+		Expect(5);
+		if(errors.count==0){
+		SQLFunc._delete(table,condition,a,b,c);flagg=1;
+        }
+	}
+
+	void Drop_command() {
+		List<string> tablelist=new List<string>();
+        string table="";
+		Expect(22);
+		str_list(tablelist);
+		while (la.kind == 9) {
+			Get();
+			str_list(tablelist);
+		}
+		Expect(5);
+		if(errors.count==0){
+		SQLFunc._drop(tablelist);
+		flagg=1;
+        }
+	}
+
+	void str(ref string xz) {
+		Expect(1);
+        xz=x+t.val;
+	//	xz.append(coco_string_create_char(t->val));
+	}
+
+	void Name_type_pair(List<column_keyvalue> a) {
+		string name,typ,temp,temp2;
+        name = "";
+        typ = "";
+        temp = "";
+        temp2 = "";
+        column_keyvalue kv=new column_keyvalue();
+		kv.isdefault=false;
+		kv.isindex=false;
+		kv.isnull=true;
+		str(ref name);
+		type(ref typ);
+		if (la.kind == 11 || la.kind == 12) {
+			if (la.kind == 11) {
+				Get();
+				kv.isnull=true;	  
+			} else {
+				Get();
+				Expect(11);
+				kv.isnull=false;	  
+			}
+		}
+		if (la.kind == 13) {
+			Get();
+			if (la.kind == 1) {
+				str(ref temp2);
+			} else if (la.kind == 3) {
+				number(ref temp2);
+			} else SynErr(44);
+			kv.isdefault=true;
+			kv.def=temp2;        
+		}
+		if (la.kind == 14) {
+			Get();
+			kv.isindex=true;      
+		}
+		kv.name=name;
+		kv.type=typ;
+		a.Add(kv);//push_back
+	}
+
+	void type(ref string type) {
+		string num="";
+		switch (la.kind) {
+		case 15: {
+			Get();
+			type=type+"int";
+			break;
+		}
+		case 16: {
+			Get();
+			type=type+"float";
+			break;
+		}
+		case 17: {
+			Get();
+            type=type+"long";			
+			break;
+		}
+		case 18: {
+			Get();
+			type=type+"date";
+			break;
+		}
+		case 19: {
+			Get();
+			type=type+"time";
+			break;
+		}
+		case 20: {
+			Get();
+			number(ref num);
+			type=type+("char/")+(num);
+			Expect(10);
+			break;
+		}
+		case 21: {
+			Get();
+			number(ref num);
+			type=type+("varchar/")+(num);
+			Expect(10);
+			break;
+		}
+		default: SynErr(45); break;
+		}
+	}
+
+	void number(ref string a) {
+		Expect(3);
+		//a.append(coco_string_create_char(t->val));
+		a=a+t.val;
+	}
+
+	void str_list(List<string> list) {
+		string temp="";
+		str(ref temp);
+		list.Add(temp);
+	}
+
+	void Condition(List<int> condition,List<string> a,List<string> b,List<string> c ,ref int count) {
+		int temp; 
+		con(condition,a,b,c,ref count);
+		while (la.kind == 36 || la.kind == 37) {
+			if (la.kind == 36) {
+				temp=-1;
+				Get();
+			} else {
+				temp=-2;
+				Get();
+			}
+			con(condition,a,b,c,ref count);
+			condition.Add(temp);
+		}
+	}
+
+	void key_value(Dictionary <string,string> col_table) {
+		string table,key,value;
+        key="";
+        value ="";
+		str(ref key);
+		Expect(31);
+		if (la.kind == 3) {
+			number(ref value);
+		} else if (la.kind == 2) {
+			strconst(ref value);
+		} else SynErr(46);
+		col_table.Add( key,value);
+	}
+
+	void strconst(ref string  xz) {
+		Expect(2);
+		string temp;
+		//temp.append(coco_string_create_char(t->val));
+        //xz.append(temp.substr(1,(strlen(temp.c_str())-2)));;
+        temp=t.val;
+        xz=xz+temp.Substring(1,temp.Length-2);		
+	}
+
+	void strconst_list(List<string> list) {
+		string temp="";
+		strconst(ref temp);
+		list.Add(temp);
+	}
+
+	void number_list(List<string> list) {
+		string temp="";
+		number(ref temp);
+		list.Add(temp);
+	}
+
+	void con(List<int> x,List<string> a,List<string> b,List<string> c ,ref int count) {
+		if (la.kind == 8) {
+			Get();
+			Condition(x,a,b,c,ref count);
+			Expect(10);
+		} else if (la.kind == 1) {
+			x.Add(count);
+            count++;
+			str_list(a);
+			r_list(b);
+			if (la.kind == 3) {
+				number_list(c);
+			} else if (la.kind == 2) {
+				strconst_list(c);
+			} else SynErr(47);
+		} else SynErr(48);
+	}
+
+	void r_list(List<string> list) {
+		string temp="";
+		r(ref temp);
+		list.Add(temp);
+	}
+
+	void r(ref string ab) {
+		Expect(4);
+		//ab.append(coco_string_create_char(t->val));
+        ab = ab + t.val;
+	}
+    
+    public void Parse() {
+		la = new Token();
+		la.val = "";		
+		Get();
+		Sql();
+		Expect(0);
+
+	}
+	
+	
+} // end Parser
+
+
+
+}
