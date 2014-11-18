@@ -10,8 +10,8 @@ namespace testSQLParser
     {
         static void Main(string[] args)
         {
-            SQLScanner scanner = new SQLScanner("d.sql");
-            SQLParser parser = new SQLParser(scanner);
+            Scanner scanner = new Scanner("d.sql");
+            Parser parser = new Parser(scanner);
             //parser.tab = new SymbolTable(parser);
             //parser.gen = new CodeGenerator();
             parser.Parse();

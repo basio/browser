@@ -1,13 +1,18 @@
 
 using System;
+using System.Collections.Generic;
+using System.Collections;
+namespace sqlparser {
 
 
 
 public class Parser {
 	public const int _EOF = 0;
-	public const int _ident = 1;
-	public const int _number = 2;
-	public const int maxT = 5;
+	public const int _c = 1;
+	public const int _const = 2;
+	public const int _num = 3;
+	public const int _rel = 4;
+	public const int maxT = 24;
 
 	const bool T = true;
 	const bool x = false;
@@ -20,14 +25,12 @@ public class Parser {
 	public Token la;   // lookahead token
 	int errDist = minErrDist;
 
-const int // types
-	  undef = 0, integer = 1, boolean = 2;
-
-	const int // object kinds
-	  var = 0, proc = 1;
-
-	
-/*--------------------------------------------------------------------------*/
+int flagg;
+ bool IsTable(){
+														Token x=scanner.Peek();
+										                if(x.val=="TABLE") return true;
+														return false;
+													}
 
 
 	public Parser(Scanner scanner) {
@@ -87,25 +90,153 @@ const int // types
 	}
 
 	
-	void Ident(out string name) {
-		Expect(1);
-		name = t.val; 
-	}
-
-	void CreateTable(out string name) {
-		string name; 
-		Expect(3);
-		Ident(out name);
-		System.out.println(name); 
-		Expect(4);
-	}
-
-	void Taste() {
-		string name; int n; 
-		while (la.kind == 3) {
-			CreateTable(out name);
+	void Sql() {
+		flagg=0;
+		while (la.kind == 5) {
+			Define_data();
 		}
-		n++; 
+	}
+
+	void Define_data() {
+		if (IsTable()) {
+			List<column_keyvalue> a=new List<column_keyvalue>();
+			string table=""; 
+			Create_table_command(a,out table);
+			GO();
+			if(errors.count==0){
+			SQLFunc._create(table, a);
+			}
+		} else if (la.kind == 5) {
+			Get();
+			while (StartOf(1)) {
+				Get();
+			}
+			GO();
+		} else SynErr(25);
+	}
+
+	void Create_table_command(List<column_keyvalue> a,out  string table ) {
+		Expect(5);
+		Expect(8);
+		str(out table);
+		Expect(9);
+		Name_type_pair(a);
+		while (la.kind == 10) {
+			Get();
+			Name_type_pair(a);
+		}
+		Expect(11);
+	}
+
+	void GO() {
+		while (la.kind == 6 || la.kind == 7) {
+			if (la.kind == 6) {
+				Get();
+			} else {
+				Get();
+			}
+		}
+	}
+
+	void str(out string  xz) {
+		Expect(1);
+		xz=t.val;	
+	}
+
+	void Name_type_pair(List<column_keyvalue> a) {
+		string name,typ,temp,temp2;column_keyvalue kv=new column_keyvalue();
+		name=typ=temp=temp2="";
+		kv.isdefault=false;
+		kv.isindex=false;
+		kv.isnull=true;
+		str(out name);
+		type(out typ);
+		if (la.kind == 12 || la.kind == 13) {
+			if (la.kind == 12) {
+				Get();
+				kv.isnull=true;	  
+			} else {
+				Get();
+				Expect(12);
+				kv.isnull=false;	  
+			}
+		}
+		if (la.kind == 14) {
+			Get();
+			if (la.kind == 1) {
+				str(out temp2);
+			} else if (la.kind == 3) {
+				number(out temp2);
+			} else SynErr(26);
+			kv.isdefault=true;
+			kv.def=temp2;        
+		}
+		if (la.kind == 15) {
+			Get();
+			kv.isindex=true;      
+		}
+		kv.name=name;
+		kv.type=typ;
+		a.Add(kv);
+	}
+
+	void type(out string  type) {
+		string num;type="";
+		switch (la.kind) {
+		case 16: {
+			Get();
+			type=type+("int");
+			break;
+		}
+		case 17: {
+			Get();
+			type=type+("float");
+			break;
+		}
+		case 18: {
+			Get();
+			type=type+("long");
+			break;
+		}
+		case 19: {
+			Get();
+			type=type+("date");
+			break;
+		}
+		case 20: {
+			Get();
+			type=type+("time");
+			break;
+		}
+		case 21: {
+			Get();
+			type=type+("num");
+			break;
+		}
+		case 22: {
+			Get();
+			number(out num);
+			type=type+("char/");
+			type=type+(num);
+			Expect(11);
+			break;
+		}
+		case 23: {
+			Get();
+			number(out num);
+			type=type+("varchar/");
+			type=type+(num);
+			Expect(11);
+			break;
+		}
+		default: SynErr(27); break;
+		}
+	}
+
+	void number(out string a) {
+		Expect(3);
+		a=t.val;
+		
 	}
 
 
@@ -114,17 +245,17 @@ const int // types
 		la = new Token();
 		la.val = "";		
 		Get();
-		Taste();
+		Sql();
 		Expect(0);
 
 	}
 	
 	static readonly bool[,] set = {
-		{T,x,x,x, x,x,x}
+		{T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
+		{x,T,T,T, T,T,x,x, T,T,T,T, T,T,T,T, T,T,T,T, T,T,T,T, T,x}
 
 	};
 } // end Parser
-
 
 public class Errors {
 	public int count = 0;                                    // number of errors detected
@@ -135,11 +266,33 @@ public class Errors {
 		string s;
 		switch (n) {
 			case 0: s = "EOF expected"; break;
-			case 1: s = "ident expected"; break;
-			case 2: s = "number expected"; break;
-			case 3: s = "\"CREATE\" expected"; break;
-			case 4: s = "\"GO\" expected"; break;
-			case 5: s = "??? expected"; break;
+			case 1: s = "c expected"; break;
+			case 2: s = "const expected"; break;
+			case 3: s = "num expected"; break;
+			case 4: s = "rel expected"; break;
+			case 5: s = "\"create\" expected"; break;
+			case 6: s = "\";\" expected"; break;
+			case 7: s = "\"go\" expected"; break;
+			case 8: s = "\"table\" expected"; break;
+			case 9: s = "\"(\" expected"; break;
+			case 10: s = "\",\" expected"; break;
+			case 11: s = "\")\" expected"; break;
+			case 12: s = "\"null\" expected"; break;
+			case 13: s = "\"not\" expected"; break;
+			case 14: s = "\"default\" expected"; break;
+			case 15: s = "\"index\" expected"; break;
+			case 16: s = "\"int\" expected"; break;
+			case 17: s = "\"float\" expected"; break;
+			case 18: s = "\"long\" expected"; break;
+			case 19: s = "\"date\" expected"; break;
+			case 20: s = "\"time\" expected"; break;
+			case 21: s = "\"numeric\" expected"; break;
+			case 22: s = "\"char(\" expected"; break;
+			case 23: s = "\"varchar(\" expected"; break;
+			case 24: s = "??? expected"; break;
+			case 25: s = "invalid Define_data"; break;
+			case 26: s = "invalid Name_type_pair"; break;
+			case 27: s = "invalid type"; break;
 
 			default: s = "error " + n; break;
 		}
@@ -169,4 +322,7 @@ public class Errors {
 
 public class FatalError: Exception {
 	public FatalError(string m): base(m) {}
+}
+
+
 }

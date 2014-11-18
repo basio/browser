@@ -20,6 +20,13 @@ namespace sqlparser
 
         static public void _create(string table, List<column_keyvalue> a)
         {
+            string s = table+"\n";
+            foreach (column_keyvalue k in a)
+            {
+                s = s + k.name + ":" + k.type+"\t";
+            }
+            Console.WriteLine(s);
+
         }
         static public void _select(string table, List<string> columnlist, List<int> condition, List<string> l, List<string> op, List<string> r)
         {

@@ -1,2 +1,0 @@
-using System;
-using sqlparser;namespace Taste {class Taste {	public static void Main (string[] arg) {		//if (arg.Length > 0)        {			SQLScanner scanner = new SQLScanner("a.sql");			SQLParser parser = new SQLParser(scanner);			//parser.tab = new SymbolTable(parser);			//parser.gen = new CodeGenerator();			parser.Parse();			if (parser.errors.count == 0) {				//parser.gen.Decode();				//parser.gen.Interpret("Taste.IN");			}		}// else            			//Console.WriteLine("-- No source file specified");	}	}} // end namespace
