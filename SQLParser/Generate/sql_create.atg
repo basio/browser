@@ -1,0 +1,105 @@
+/*
+ * SQL COCO/R specification
+ *
+ *  Created on: 17-Nov-2009
+ *      Author: Atul Shukla (atul.shukla@iiitb.net)
+ */
+
+COMPILER Sql
+int flagg;
+(. bool IsTable(){
+														Token x=scanner.Peek();
+														x=scanner.Peek();
+													if(x.val=="table") return true;
+														return false;
+													}.)
+IGNORECASE
+
+CHARACTERS
+
+char = 'A'..'Z' + 'a'..'z'.
+digit = '0'..'9'.
+strr=ANY-'\''.
+cr  = '\r'.
+lf  = '\n'.
+tab = '\t'.
+
+
+TOKENS
+c=(char{(char|digit)}).
+const = "'"strr{strr}"'".
+num=digit{digit}.
+rel="<=" | ">="|"!="|">"|"<"|"==".
+
+IGNORE cr + lf + tab
+
+PRODUCTIONS
+
+Sql(.flagg=0;.) = {Define_data}.    
+Define_data=IF (IsTable())									(. List<column_keyvalue> a=new List<column_keyvalue>();
+												   string table=""; .)	
+ 									
+Create_table_command< a,out table>	GO						(.//cout<<"Inside atg"<<errors->count;
+													if(errors.count==0){
+												  SQLFunc._create(table, a);
+													}.)						
+| "create" {ANY} GO
+.
+
+GO= {";"|"GO"}.
+/*----------------------------------Start of Create-------------------------------------------------*/
+
+Create_table_command<. List<column_keyvalue> a,out  string table .>  													 
+= "create" "table" 
+str<out table> 
+"(" 
+(Name_type_pair<a>{","Name_type_pair<a>})
+")" 											
+.
+
+
+Name_type_pair<.List<column_keyvalue> a.>         (. string name,typ,temp,temp2;column_keyvalue kv=new column_keyvalue();
+														name=typ=temp=temp2="";
+														kv.isdefault=false;
+														kv.isindex=false;
+														kv.isnull=true;.)
+=str<out name>type<out typ>["null"                      (.  kv.isnull=true;	  .)
+|"not" "null"									(. kv.isnull=false;	  .)	
+] ["default" (str<out temp2>|number<out temp2>)							(. kv.isdefault=true;
+												   kv.def=temp2;        .)
+] ["index"										(. kv.isindex=true;      .)
+]												(. 												   
+												   kv.name=name;
+												   kv.type=typ;
+												   a.Add(kv);.)
+.
+
+type<out string  type>								(.string num;type="";.)
+=("int"											(.type=type+("int");.)
+|"float"										(.type=type+("float");.)
+|"long"											(.type=type+("long");.)
+|"date"											(.type=type+("date");.)
+|"time"											(.type=type+("time");.)
+|"numeric"										(.type=type+("num");.)
+|"char("number<out num> 							(.type=type+("char/");
+												  type=type+(num);.)
+")"|"varchar("number<out num>						(.type=type+("varchar/");
+												  type=type+(num);.)
+")").
+
+/*----------------------------------End of Create-------------------------------------------------*/
+
+number<out string a>
+=num 											(.
+													//a.append(coco_string_create_char(t->val));
+													a=t.val;
+													.)
+.
+str<out string  xz>=
+c												(.												
+												//xz.append(coco_string_create_char(t->val));
+												xz=t.val;	.)
+.
+
+
+END Sql.
